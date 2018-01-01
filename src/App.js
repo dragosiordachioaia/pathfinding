@@ -2,16 +2,16 @@ import React from "react";
 import "./App.css";
 // import road from "./Road.json";
 
-let road = Array(400).fill(null);
+let road = Array(80).fill(null);
 road = road.map(() => {
-  return Array(400)
+  return Array(270)
     .fill(null)
     .map(element => (Math.random() > 0.2 ? 1 : 0));
 });
 
 // console.log(road);
 const MAX_DEPTH = 10000;
-const unitSize = 3;
+const unitSize = 5;
 const carCount = 1;
 const tickDelay = 16;
 const junctionChance = 0.5;
@@ -35,13 +35,7 @@ road.forEach((row, rowIndex) => {
   });
 });
 
-// const targetIndex = Math.floor(
-//   validRoadCells.length * 0.95 +
-//     Math.random() * (validRoadCells.length * 0.05 - 1)
-// );
-const targetIndex = validRoadCells.length - 1;
-const targetCell = validRoadCells[targetIndex];
-const target = [targetCell.x, targetCell.y];
+let target = null;
 window.target = target;
 
 function directionsAreOpposite(oldDirection, newDirection) {
@@ -66,22 +60,13 @@ function directionsAreOpposite(oldDirection, newDirection) {
   return opposite;
 }
 
-function canGo(x, y, direction, speedXParam, speedYParam) {
-  let speedX = 0;
-  let speedY = 0;
-
-  if (direction) {
-    speedX = directions[direction][0];
-    speedY = directions[direction][1];
-  } else {
-    speedX = speedXParam;
-    speedY = speedYParam;
-  }
+function canGo(x, y, direction) {
+  let speedX = directions[direction][0];
+  let speedY = directions[direction][1];
 
   let isOK = road[y + speedY] && road[y + speedY][x + speedX] === 1;
 
   if (isOK) {
-    // debugger;
     let cellKey = `${x + speedX}-${y + speedY}`;
     if (visitedCells[cellKey]) {
       // console.log("coming from cell", x, y, "visitedCell:", cellKey);
@@ -96,37 +81,57 @@ function canGo(x, y, direction, speedXParam, speedYParam) {
   }
 }
 
-let paths = { cell: [0, 0], level: 0 };
-
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       cars: this.generateCars(),
       path: [],
-      shortestPath: []
+      shortestPath: [],
+      target: null
     };
 
-    this.targetFound = false;
-    this.messagePrinted = false;
-    this.canContinue = true;
-    this.deepestLevel = 0;
-    this.waves = [[{ cell: [0, 0] }]];
+    this.initialWaves = [[{ cell: [0, 0] }]];
+    this.waves = JSON.parse(JSON.stringify(this.initialWaves));
     window.waves = this.waves;
     window.cars = this.state.cars;
   }
 
+  chooseTarget = () => {
+    // const targetIndex = validRoadCells.length - 1;
+    const targetIndex = Math.floor(
+      // validRoadCells.length * 0.95 +
+      Math.random() * (validRoadCells.length - 1)
+    );
+    const targetCell = validRoadCells[targetIndex];
+    target = [targetCell.x, targetCell.y];
+    this.setState({ target });
+  };
+
   componentDidMount() {
-    // window.tick = this.tick;
     // tickInterval = setInterval(this.tick, tickDelay);
     window.cars = this.printCars;
     window.start = this.start;
+    window.startAutoRefresh = this.startAutoRefresh;
+    window.clearWaves = this.clearWaves;
+    // this.chooseTarget();
     // setTimeout(this.start, 1000);
   }
 
+  clearWaves = () => {
+    visitedCells = {};
+    this.waves = JSON.parse(JSON.stringify(this.initialWaves));
+    // this.setState({shortestPath: []});
+  };
+
+  startAutoRefresh = () => {
+    window.startInterval = window.setInterval(this.start, 350);
+  };
+
   start = () => {
+    this.clearWaves();
+    this.chooseTarget();
     this.startTime = Date.now();
-    // this.next(paths);
     this.nextWave();
   };
 
@@ -135,7 +140,6 @@ class App extends React.Component {
   };
 
   nextWave = () => {
-    // debugger;
     const currentWave = this.waves[this.waves.length - 1];
     // console.log("starting wave", this.waves.length);
     // console.log(this.waves);
@@ -147,7 +151,6 @@ class App extends React.Component {
 
       for (let directionName in directions) {
         const newCell = canGo(parent.cell[0], parent.cell[1], directionName);
-        // debugger;
 
         if (newCell) {
           const newParent = {
@@ -178,78 +181,15 @@ class App extends React.Component {
       );
       // this.setState({ waves: this.waves });
     } else {
-      if (this.waves.length % 10) {
-        setTimeout(this.nextWave, 0);
-      } else {
-        this.nextWave();
-      }
+      // if (this.waves.length > 99 && this.waves.length % 100) {
+      // setTimeout(this.nextWave, 0);
+      // } else {
+      this.nextWave();
+      // }
     }
-  };
-
-  next = currentParent => {
-    const cell = currentParent.cell;
-    // console.log("next");
-    // debugger;
-    if (!this.canContinue) return;
-
-    if (cell[0] === target[0] && cell[1] === target[1]) {
-      this.targetFound = true;
-      this.canContinue = false;
-      this.messagePrinted = true;
-      this.endTime = Date.now();
-      this.duration = this.endTime - this.startTime;
-      setTimeout(() => alert(`Target found in ${this.duration}ms`), 1000);
-      // this.setState({ path: paths });
-      this.setShortestPath(currentParent);
-      console.log(`found at level ${currentParent.level}`);
-
-      return;
-    }
-
-    if (currentParent.level > MAX_DEPTH) {
-      this.canContinue = false;
-      if (!this.messagePrinted) {
-        this.messagePrinted = true;
-        alert("max level reached");
-        console.log(paths);
-      }
-    }
-
-    if (!currentParent.branches) {
-      currentParent.branches = [];
-    }
-    for (let directionName in directions) {
-      const newCell = canGo(cell[0], cell[1], directionName);
-      let directionIsOK = true;
-
-      if (newCell && directionIsOK) {
-        const newBranch = {
-          cell: newCell,
-          cellParent: currentParent.cell,
-          directionName,
-          parent: currentParent,
-          level: currentParent.level + 1
-        };
-        currentParent.branches.push(newBranch);
-      }
-    }
-
-    // console.log("currentParent = ", currentParent);
-    if (currentParent.level > this.deepestLevel) {
-      this.deepestLevel = currentParent.level;
-      // this.setState({ path: paths });
-    }
-    setTimeout(() => {
-      currentParent.branches.forEach(branch => {
-        if (!this.targetFound) {
-          this.next(branch);
-        }
-      });
-    }, 1);
   };
 
   setShortestPath = currentCell => {
-    // debugger;
     let shortestPath = this.getParentPath([], currentCell).reverse();
     // console.log("shortestPath:", shortestPath);
     this.setState({ shortestPath });
@@ -269,46 +209,6 @@ class App extends React.Component {
     console.log(this.state.cars[0]);
   };
 
-  // tick = () => {
-  //   let newCars = this.state.cars.map(car => {
-  //     let newSpeedX = 0;
-  //     let newSpeedY = 0;
-  //     let canMove = true;
-  //     if (car.x === target[0] && car.y === target[1]) {
-  //       canMove = false;
-  //       if (tickInterval) clearInterval(tickInterval);
-  //       // alert("yohoo");
-  //     }
-  //     const newDirection = chooseDirection(car.x, car.y, [
-  //       car.speedX,
-  //       car.speedY
-  //     ]);
-  //     newSpeedX = newDirection.newSpeedX;
-  //     newSpeedY = newDirection.newSpeedY;
-
-  //     let newCarProperties = {
-  //       ...car,
-  //       speedX: newSpeedX,
-  //       speedY: newSpeedY
-  //     };
-
-  //     if (canMove) {
-  //       newCarProperties.x = newCarProperties.x + newSpeedX;
-  //       newCarProperties.y = newCarProperties.y + newSpeedY;
-  //     } else {
-  //       newCarProperties.x = car.x;
-  //       newCarProperties.y = car.y;
-  //     }
-  //     return newCarProperties;
-  //   });
-  //   let newPath = [...this.state.path, [newCars[0].x, newCars[0].y]];
-
-  //   this.setState({
-  //     cars: newCars,
-  //     path: newPath
-  //   });
-  // };
-
   generateCars = () => {
     return Array(carCount)
       .fill(null)
@@ -318,26 +218,11 @@ class App extends React.Component {
         const green = Math.round(Math.random() * 155) + 100;
         const rgb = `rgb(${red},${blue},${green})`;
 
-        // let randomInitialCellIndex = Math.round(
-        //   Math.random() * (validRoadCells.length - 1)
-        // );
-        // let initialCell = validRoadCells[randomInitialCellIndex];
-        // validRoadCells.splice(randomInitialCellIndex, 1);
-        // let direction = chooseDirection(initialCell.x, initialCell.y, [0, 0]);
-
-        // debugger;
-        // let randomInitialCellIndex = 6;
         let initialCell = {
           x: 0,
           y: 0
         };
-        // let direction = chooseDirection(initialCell.x, initialCell.y, [0, 0]);
-        // let direction = {
-        //   newSpeedY: 0,
-        //   newSpeedX: 1
-        // };
 
-        // debugger;
         const carParams = {
           id: Math.floor(Math.random() * 10000000),
           color: rgb,
@@ -346,7 +231,6 @@ class App extends React.Component {
           x: initialCell.x,
           y: initialCell.y
         };
-        // debugger;
         return carParams;
       });
   };
@@ -411,9 +295,13 @@ class App extends React.Component {
   };
 
   displayTarget = () => {
+    if (!this.state.target) {
+      return null;
+    }
+    // console.log("this.state.target: ", this.state.target);
     const style = {
-      left: target[0] * unitSize,
-      top: target[1] * unitSize,
+      left: this.state.target[0] * unitSize,
+      top: this.state.target[1] * unitSize,
       width: unitSize * 1.5 + "px",
       height: unitSize * 1.5 + "px",
       backgroundColor: "red"
@@ -472,55 +360,6 @@ class App extends React.Component {
       });
     });
   };
-
-  displayPath = () => {
-    const pathElements = this.flattenLevel(this.state.path);
-    // console.log(pathElements);
-
-    return pathElements.map((cell, index) => {
-      if (!cell) {
-        return null;
-      }
-
-      let style = {
-        left: cell[0] * unitSize,
-        top: cell[1] * unitSize,
-        width: unitSize / 4 + "px",
-        height: unitSize / 4 + "px",
-        backgroundColor: "#2ecc71"
-      };
-
-      return (
-        <div
-          className="path"
-          style={style}
-          key={`path-${cell[0]}-${cell[1]}-${index}`}
-        />
-      );
-    });
-  };
-
-  flattenLevel = currentParent => {
-    const flat = [currentParent.cell];
-    if (currentParent.branches) {
-      currentParent.branches.forEach(branch => {
-        flat.push(...this.flattenLevel(branch));
-      });
-    }
-
-    return flat;
-  };
-
-  // displayPathLevel = currentParent => {
-  //   if (currentParent.branches) {
-  //     branches = currentParent.branches.map(branch =>
-  //       this.displayPathLevel(branch)
-  //     );
-  //   }
-  //   if (!currentParent || !currentParent.cell) {
-  //     return null;
-  //   }
-  // };
 
   render() {
     return (

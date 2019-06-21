@@ -1,7 +1,9 @@
 import React from 'react';
 import './App.css';
 
-let unitSize = 20;
+const unitSize = 20;
+const carCount = 1;
+const tickInterval = 200;
 
 let road = [
   [1,1,1,1,1,1,1,1,1,1,1],
@@ -37,36 +39,90 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    setInterval(this.tick, 100);
+    setInterval(this.tick, tickInterval);
   }
 
   tick = () => {
     let newCars = this.state.cars.map(car => {
+      let newSpeedX = car.speedX;
+      let newSpeedY = car.speedY;
+
+      let newCell = null;
+      // debugger;
+      if(newSpeedX) {
+        
+        try { newCell = road[car.y][car.x + newSpeedX] } catch(e) {}
+  
+        if (!newCell) {
+          try { newCell = road[car.y + 1][car.x] } catch(e) {}  
+  
+          if (newCell) {
+            newSpeedX = 0;
+            newSpeedY = 1;
+          } else {
+            try { newCell = road[car.y -1][car.x] } catch(e) {}  
+  
+            if (newCell) {
+              newSpeedX = 0;
+              newSpeedY = -1;
+            } else {
+              newSpeedX = -newSpeedX;
+            }
+          }
+        }
+      } else if(newSpeedY){
+
+        try { newCell = road[car.y+newSpeedY][car.x] } catch(e) {}
+  
+        if (!newCell) {
+          try { newCell = road[car.y][car.x + 1] } catch(e) {}  
+  
+          if (newCell) {
+            newSpeedX = 1;
+            newSpeedY = 0;
+          } else {
+            try { newCell = road[car.y][car.x - 1] } catch(e) {}  
+  
+            if (newCell) {
+              newSpeedX = -1;
+              newSpeedY = 0;
+            } else {
+              newSpeedY = -newSpeedY;
+            }
+          }
+        }
+
+      }
+      
+
       return {
         ...car,
-        x: car.x + car.speedX,
-        y: car.y + car.speedY,
+        x: car.x + newSpeedX,
+        y: car.y + newSpeedY,
+        speedX: newSpeedX,
+        speedY: newSpeedY,
       }
     });
     this.setState({cars: newCars})
   }
 
   generateCars = () => {
-    return Array(2).fill(null).map(car => {
+    return Array(carCount).fill(null).map(car => {
       const red = Math.round(Math.random() * 255);
       const blue = Math.round(Math.random() * 255);
       const green = Math.round(Math.random() * 255);
       const rgb = `rgb(${red},${blue},${green})`;
 
-      let randomInitialCell = Math.round(Math.random()*validRoadCells.length);
+      // let randomInitialCell = Math.round(Math.random() * validRoadCells.length);
+      let randomInitialCell = 0;
       
       const carParams = {
         id: Math.floor(Math.random() * 10000000),
         color: rgb,
         speedX: 1,
         speedY: 0,
-        x: validRoadCells[randomInitialCell].x * unitSize,
-        y: validRoadCells[randomInitialCell].y * unitSize,
+        x: validRoadCells[randomInitialCell].x,
+        y: validRoadCells[randomInitialCell].y,
       }
       // debugger;
       return carParams;
@@ -79,7 +135,13 @@ class App extends React.Component {
         <div 
           className="car" 
           key={car.id} 
-          style={{top: car.x, left: car.y, backgroundColor: car.color, width: unitSize+'px', height: unitSize+'px'}}
+          style={{
+            left: car.x * unitSize, 
+            top: car.y * unitSize, 
+            backgroundColor: car.color, 
+            width: unitSize+'px', 
+            height: unitSize+'px'
+          }}
         >  
         </div>
       )

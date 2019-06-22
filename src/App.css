@@ -9,13 +9,18 @@
   /* transition-timing-function: linear; */
   position: absolute;
   display: block;
-  border-right: 1px solid #bbb;
-  border-bottom: 1px solid #bbb;
+  /* border-right: 1px solid #bbb; */
+  /* border-bottom: 1px solid #bbb; */
   box-sizing: border-box;
-  transform: translate(-50%, -50%);
+  /* transform: translate(-50%, -50%); */
 }
 
-.road-label {
+.car {
+  border-radius: 50%;
+}
+
+.road-label,
+.car-label {
   color: #fff;
   mix-blend-mode: exclusion;
   font-size: 10px;
@@ -24,4 +29,10 @@
   width: 100%;
   display: inline-block;
   line-height: 27px;
+}
+
+.car-label {
+  color: black;
+  mix-blend-mode: normal;
+  line-height: 28px;
 }

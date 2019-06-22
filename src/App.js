@@ -2,7 +2,7 @@ import React from "react";
 import "./App.css";
 
 const unitSize = 30;
-const carCount = 0;
+const carCount = 100;
 const tickDelay = 16;
 const junctionChance = 0;
 let tickInterval = null;
@@ -40,7 +40,7 @@ let validRoadCells = [];
 road.forEach((row, rowIndex) => {
   row.forEach((isRoad, columnIndex) => {
     if (isRoad) {
-      validRoadCells.push({ x: rowIndex, y: columnIndex });
+      validRoadCells.push({ x: columnIndex, y: rowIndex });
     }
   });
 });
@@ -122,7 +122,8 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    // tickInterval = setInterval(this.tick, tickDelay);
+    window.tick = this.tick;
+    tickInterval = setInterval(this.tick, tickDelay);
   }
 
   tick = () => {
@@ -163,8 +164,9 @@ class App extends React.Component {
         // let randomInitialCellIndex = Math.round(
         //   Math.random() * validRoadCells.length
         // );
-        let randomInitialCellIndex = 18;
+        let randomInitialCellIndex = 0;
         let initialCell = validRoadCells[randomInitialCellIndex];
+        validRoadCells.splice(randomInitialCellIndex, 1);
         let direction = chooseDirection(initialCell.x, initialCell.y, [0, 0]);
         // debugger;
         const carParams = {
@@ -193,7 +195,11 @@ class App extends React.Component {
             width: unitSize + "px",
             height: unitSize + "px"
           }}
-        />
+        >
+          {/* <span className="car-label">
+            {car.x}:{car.y}
+          </span> */}
+        </div>
       );
     });
   };
@@ -208,18 +214,18 @@ class App extends React.Component {
           height: unitSize + "px",
           backgroundColor: isRoad ? "#444" : "#fff"
         };
-        if (rowIndex === 1 && columnIndex === 2) {
-          style.backgroundColor = "red";
-        }
+        // if (rowIndex === 1 && columnIndex === 2) {
+        //   style.backgroundColor = "red";
+        // }
         return (
           <div
             className="road"
             key={`road-${rowIndex}-${columnIndex}`}
             style={style}
           >
-            <span className="road-label">
-              {rowIndex}:{columnIndex}
-            </span>
+            {/* <span className="road-label">
+              {columnIndex}:{rowIndex}
+            </span> */}
           </div>
         );
       });

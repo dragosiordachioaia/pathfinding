@@ -1,45 +1,127 @@
-import React from 'react';
-import './App.css';
+import React from "react";
+import "./App.css";
 
 const unitSize = 20;
 const carCount = 1;
-const tickInterval = 200;
+const tickDelay = 16;
+const junctionChance = 0;
+let tickInterval = null;
+
+const directions = {
+  up: [0, -1],
+  down: [0, 1],
+  right: [1, 0],
+  left: [-1, 0]
+};
 
 let road = [
-  [1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,1,0,1,0,1,0,0,0,1],
-  [1,0,1,0,1,0,1,0,0,0,1],
-  [1,0,1,0,1,0,1,0,0,0,1],
-  [1,0,1,1,1,1,1,0,0,0,1],
-  [1,0,1,0,1,0,1,0,0,0,1],
-  [1,0,1,0,1,0,1,0,0,0,1],
-  [1,1,1,1,1,0,1,0,0,0,1],
-  [1,0,1,0,0,0,1,0,0,0,1],
-  [1,0,1,0,0,0,1,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1],
-]
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+];
 
 let validRoadCells = [];
 
 road.forEach((row, rowIndex) => {
   row.forEach((isRoad, columnIndex) => {
-    if(isRoad) {
-      validRoadCells.push({x: rowIndex, y: columnIndex});
+    if (isRoad) {
+      validRoadCells.push({ x: rowIndex, y: columnIndex });
     }
-  })  
+  });
 });
 
+function directionsAreOpposite(oldDirection, newDirection) {
+  let opposite = false;
+
+  if (
+    oldDirection[0] + newDirection[0] === 0 &&
+    oldDirection[1] === newDirection[1]
+  ) {
+    opposite = true;
+  }
+  if (
+    oldDirection[1] + newDirection[1] === 0 &&
+    oldDirection[0] === newDirection[0]
+  ) {
+    opposite = true;
+  }
+  return opposite;
+}
+
+function canGo(x, y, direction, speedXParam, speedYParam) {
+  let speedX = 0;
+  let speedY = 0;
+
+  if (direction) {
+    speedX = directions[direction][0];
+    speedY = directions[direction][1];
+  }
+  if (!direction) {
+    speedX = speedXParam;
+    speedY = speedYParam;
+  }
+
+  let isOK = false;
+  try {
+    isOK = road[y + speedY][x + speedX];
+  } catch (e) {}
+  return isOK;
+}
+
+function chooseDirection(x, y, oldDirection) {
+  let validDirections = [];
+  for (let directionName in directions) {
+    if (
+      !directionsAreOpposite(directions[directionName], oldDirection) &&
+      canGo(x, y, directionName)
+    ) {
+      validDirections.push(directions[directionName]);
+    }
+  }
+  const newDirectionIndex = Math.floor(Math.random() * validDirections.length);
+  let newDirection = null;
+  let returnValue = null;
+  try {
+    newDirection = validDirections[newDirectionIndex];
+    returnValue = {
+      newSpeedX: newDirection[0],
+      newSpeedY: newDirection[1]
+    };
+  } catch (e) {
+    clearInterval(tickInterval);
+  }
+
+  if (!returnValue) {
+    debugger;
+  }
+  return returnValue;
+}
 
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      cars: this.generateCars(),
-    }
+      cars: this.generateCars()
+    };
   }
 
   componentDidMount() {
-    setInterval(this.tick, tickInterval);
+    tickInterval = setInterval(this.tick, tickDelay);
   }
 
   tick = () => {
@@ -47,131 +129,90 @@ class App extends React.Component {
       let newSpeedX = car.speedX;
       let newSpeedY = car.speedY;
 
-      let newCell = null;
-      // debugger;
-      if(newSpeedX) {
-        
-        try { newCell = road[car.y][car.x + newSpeedX] } catch(e) {}
-  
-        if (!newCell) {
-          try { newCell = road[car.y + 1][car.x] } catch(e) {}  
-  
-          if (newCell) {
-            newSpeedX = 0;
-            newSpeedY = 1;
-          } else {
-            try { newCell = road[car.y -1][car.x] } catch(e) {}  
-  
-            if (newCell) {
-              newSpeedX = 0;
-              newSpeedY = -1;
-            } else {
-              newSpeedX = -newSpeedX;
-            }
-          }
-        }
-      } else if(newSpeedY){
-
-        try { newCell = road[car.y+newSpeedY][car.x] } catch(e) {}
-  
-        if (!newCell) {
-          try { newCell = road[car.y][car.x + 1] } catch(e) {}  
-  
-          if (newCell) {
-            newSpeedX = 1;
-            newSpeedY = 0;
-          } else {
-            try { newCell = road[car.y][car.x - 1] } catch(e) {}  
-  
-            if (newCell) {
-              newSpeedX = -1;
-              newSpeedY = 0;
-            } else {
-              newSpeedY = -newSpeedY;
-            }
-          }
-        }
-
+      if (!canGo(car.x, car.y, null, newSpeedX, newSpeedY)) {
+        // alert("wall");
+        const newDirection = chooseDirection(car.x, car.y, [
+          car.speedX,
+          car.speedY
+        ]);
+        newSpeedX = newDirection.newSpeedX;
+        newSpeedY = newDirection.newSpeedY;
       }
-      
 
       return {
         ...car,
         x: car.x + newSpeedX,
         y: car.y + newSpeedY,
         speedX: newSpeedX,
-        speedY: newSpeedY,
-      }
+        speedY: newSpeedY
+      };
     });
-    this.setState({cars: newCars})
-  }
+    this.setState({ cars: newCars });
+  };
 
   generateCars = () => {
-    return Array(carCount).fill(null).map(car => {
-      const red = Math.round(Math.random() * 255);
-      const blue = Math.round(Math.random() * 255);
-      const green = Math.round(Math.random() * 255);
-      const rgb = `rgb(${red},${blue},${green})`;
+    return Array(carCount)
+      .fill(null)
+      .map(car => {
+        const red = Math.round(Math.random() * 155) + 100;
+        const blue = Math.round(Math.random() * 155) + 100;
+        const green = Math.round(Math.random() * 155) + 100;
+        const rgb = `rgb(${red},${blue},${green})`;
 
-      // let randomInitialCell = Math.round(Math.random() * validRoadCells.length);
-      let randomInitialCell = 0;
-      
-      const carParams = {
-        id: Math.floor(Math.random() * 10000000),
-        color: rgb,
-        speedX: 1,
-        speedY: 0,
-        x: validRoadCells[randomInitialCell].x,
-        y: validRoadCells[randomInitialCell].y,
-      }
-      // debugger;
-      return carParams;
-    })
-  }
+        // let randomInitialCell = Math.round(Math.random() * validRoadCells.length);
+        let randomInitialCell = 0;
+
+        const carParams = {
+          id: Math.floor(Math.random() * 10000000),
+          color: rgb,
+          speedX: 1,
+          speedY: 0,
+          x: validRoadCells[randomInitialCell].x,
+          y: validRoadCells[randomInitialCell].y
+        };
+        // debugger;
+        return carParams;
+      });
+  };
 
   displayCars = () => {
     return this.state.cars.map(car => {
       return (
-        <div 
-          className="car" 
-          key={car.id} 
+        <div
+          className="car"
+          key={car.id}
           style={{
-            left: car.x * unitSize, 
-            top: car.y * unitSize, 
-            backgroundColor: car.color, 
-            width: unitSize+'px', 
-            height: unitSize+'px'
+            left: car.x * unitSize,
+            top: car.y * unitSize,
+            backgroundColor: car.color,
+            width: unitSize + "px",
+            height: unitSize + "px"
           }}
-        >  
-        </div>
-      )
-    })
-  }
-  
+        />
+      );
+    });
+  };
+
   displayRoad = () => {
     return road.map((row, rowIndex) => {
       return row.map((isRoad, columnIndex) => {
         let style = {
-          left: columnIndex*unitSize, 
-          top: rowIndex*unitSize, 
-          width: unitSize+'px', 
-          height: unitSize+'px',
-          backgroundColor: isRoad ? '#444' : '#fff'
-        }
+          left: columnIndex * unitSize,
+          top: rowIndex * unitSize,
+          width: unitSize + "px",
+          height: unitSize + "px",
+          backgroundColor: isRoad ? "#444" : "#fff"
+        };
         return (
-          <div 
-            className="road" 
-            key={`road-${rowIndex}-${columnIndex}`} 
+          <div
+            className="road"
+            key={`road-${rowIndex}-${columnIndex}`}
             style={style}
-          >
-          </div>
-        )
-
-      })
-    })
-  }
-
-  
+          />
+        );
+      });
+    });
+  };
 
   render() {
     return (
@@ -179,7 +220,7 @@ class App extends React.Component {
         {this.displayRoad()}
         {this.displayCars()}
       </div>
-    )
+    );
   }
 }
 

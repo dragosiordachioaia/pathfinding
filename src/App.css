@@ -5,12 +5,9 @@
 
 .car,
 .road {
-  transition: all 200ms;
-  transition-timing-function: linear;
+  /* transition: all 0ms; */
+  /* transition-timing-function: linear; */
   position: absolute;
   display: block;
   transform: translate(-50%, -50%);
 }
-
-
-

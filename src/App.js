@@ -2,7 +2,7 @@ import React from "react";
 import "./App.css";
 
 const unitSize = 30;
-const carCount = 10;
+const carCount = 20;
 const tickDelay = 16;
 const junctionChance = 0.5;
 let tickInterval = null;
@@ -82,6 +82,14 @@ function canGo(x, y, direction, speedXParam, speedYParam) {
   return isOK;
 }
 
+function isAnotherCarInFront({ x, y, speedX, speedY }, cars) {
+  return (
+    cars.filter(currentCar => {
+      return currentCar.x === x + speedX && currentCar.y === y + speedY;
+    }).length > 0
+  );
+}
+
 function isJunction(x, y) {
   let validDirections = [];
   for (let directionName in directions) {
@@ -139,6 +147,7 @@ class App extends React.Component {
     let newCars = this.state.cars.map(car => {
       let newSpeedX = 0;
       let newSpeedY = 0;
+      let canMove = true;
 
       let shouldChangeDirectionAtJunction = Math.random() > junctionChance;
       let mustChangeDirection = false;
@@ -158,15 +167,26 @@ class App extends React.Component {
       } else {
         newSpeedX = car.speedX;
         newSpeedY = car.speedY;
+
+        if (isAnotherCarInFront(car, this.state.cars)) {
+          canMove = false;
+        }
       }
 
-      return {
+      let newCarProperties = {
         ...car,
-        x: car.x + newSpeedX,
-        y: car.y + newSpeedY,
         speedX: newSpeedX,
         speedY: newSpeedY
       };
+
+      if (canMove) {
+        newCarProperties.x = newCarProperties.x + newSpeedX;
+        newCarProperties.y = newCarProperties.y + newSpeedY;
+      } else {
+        newCarProperties.x = car.x;
+        newCarProperties.y = car.y;
+      }
+      return newCarProperties;
     });
     this.setState({ cars: newCars });
   };
@@ -180,9 +200,10 @@ class App extends React.Component {
         const green = Math.round(Math.random() * 155) + 100;
         const rgb = `rgb(${red},${blue},${green})`;
 
-        let randomInitialCellIndex = Math.round(
-          Math.random() * (validRoadCells.length - 1)
-        );
+        // let randomInitialCellIndex = Math.round(
+        //   Math.random() * (validRoadCells.length - 1)
+        // );
+        let randomInitialCellIndex = 0;
         let initialCell = validRoadCells[randomInitialCellIndex];
         if (!initialCell) {
           debugger;

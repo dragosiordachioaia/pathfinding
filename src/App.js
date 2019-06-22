@@ -2,9 +2,9 @@ import React from "react";
 import "./App.css";
 
 const unitSize = 30;
-const carCount = 100;
+const carCount = 10;
 const tickDelay = 16;
-const junctionChance = 0;
+const junctionChance = 0.5;
 let tickInterval = null;
 
 const directions = {
@@ -70,8 +70,7 @@ function canGo(x, y, direction, speedXParam, speedYParam) {
   if (direction) {
     speedX = directions[direction][0];
     speedY = directions[direction][1];
-  }
-  if (!direction) {
+  } else {
     speedX = speedXParam;
     speedY = speedYParam;
   }
@@ -81,6 +80,16 @@ function canGo(x, y, direction, speedXParam, speedYParam) {
     isOK = road[y + speedY][x + speedX];
   } catch (e) {}
   return isOK;
+}
+
+function isJunction(x, y) {
+  let validDirections = [];
+  for (let directionName in directions) {
+    if (canGo(x, y, directionName)) {
+      validDirections.push(directions[directionName]);
+    }
+  }
+  return validDirections.length >= 3;
 }
 
 function chooseDirection(x, y, oldDirection) {
@@ -128,17 +137,27 @@ class App extends React.Component {
 
   tick = () => {
     let newCars = this.state.cars.map(car => {
-      let newSpeedX = car.speedX;
-      let newSpeedY = car.speedY;
+      let newSpeedX = 0;
+      let newSpeedY = 0;
 
-      if (!canGo(car.x, car.y, null, newSpeedX, newSpeedY)) {
-        // alert("wall");
+      let shouldChangeDirectionAtJunction = Math.random() > junctionChance;
+      let mustChangeDirection = false;
+
+      if (!canGo(car.x, car.y, null, car.speedX, car.speedY)) {
+        mustChangeDirection = true;
+      } else if (isJunction(car.x, car.y) && shouldChangeDirectionAtJunction) {
+        mustChangeDirection = true;
+      }
+      if (mustChangeDirection) {
         const newDirection = chooseDirection(car.x, car.y, [
           car.speedX,
           car.speedY
         ]);
         newSpeedX = newDirection.newSpeedX;
         newSpeedY = newDirection.newSpeedY;
+      } else {
+        newSpeedX = car.speedX;
+        newSpeedY = car.speedY;
       }
 
       return {
@@ -161,13 +180,27 @@ class App extends React.Component {
         const green = Math.round(Math.random() * 155) + 100;
         const rgb = `rgb(${red},${blue},${green})`;
 
-        // let randomInitialCellIndex = Math.round(
-        //   Math.random() * validRoadCells.length
-        // );
-        let randomInitialCellIndex = 0;
+        let randomInitialCellIndex = Math.round(
+          Math.random() * (validRoadCells.length - 1)
+        );
         let initialCell = validRoadCells[randomInitialCellIndex];
+        if (!initialCell) {
+          debugger;
+        }
         validRoadCells.splice(randomInitialCellIndex, 1);
+        // debugger;
+        // let randomInitialCellIndex = 6;
+        // let initialCell = {
+        //   x: 0,
+        //   y: 16
+        // };
+        // let direction = {
+        //   newSpeedY: 1,
+        //   newSpeedX: 0
+        // };
+
         let direction = chooseDirection(initialCell.x, initialCell.y, [0, 0]);
+
         // debugger;
         const carParams = {
           id: Math.floor(Math.random() * 10000000),

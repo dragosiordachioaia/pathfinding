@@ -2,7 +2,7 @@ import React from "react";
 import "./App.css";
 
 const unitSize = 30;
-const carCount = 20;
+const carCount = 1;
 const tickDelay = 16;
 const junctionChance = 0.5;
 let tickInterval = null;
@@ -35,6 +35,16 @@ let road = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ];
 
+const targetRowIndex = road.length - 1;
+const targetColumnIndex = road[targetRowIndex].length - 1;
+const target = [targetColumnIndex, targetRowIndex];
+console.log(target);
+const targetRow = road[target[0]];
+const targetCell = targetRow[target[1]];
+console.log(targetCell);
+// debugger;
+window.target = target;
+
 let validRoadCells = [];
 
 road.forEach((row, rowIndex) => {
@@ -48,17 +58,21 @@ road.forEach((row, rowIndex) => {
 function directionsAreOpposite(oldDirection, newDirection) {
   let opposite = false;
 
-  if (
-    oldDirection[0] + newDirection[0] === 0 &&
-    oldDirection[1] === newDirection[1]
-  ) {
-    opposite = true;
+  if (oldDirection[0]) {
+    if (
+      oldDirection[0] === -newDirection[0] &&
+      oldDirection[1] === newDirection[1]
+    ) {
+      opposite = true;
+    }
   }
-  if (
-    oldDirection[1] + newDirection[1] === 0 &&
-    oldDirection[0] === newDirection[0]
-  ) {
-    opposite = true;
+  if (oldDirection[1]) {
+    if (
+      oldDirection[1] === -newDirection[1] &&
+      oldDirection[0] === newDirection[0]
+    ) {
+      opposite = true;
+    }
   }
   return opposite;
 }
@@ -75,10 +89,8 @@ function canGo(x, y, direction, speedXParam, speedYParam) {
     speedY = speedYParam;
   }
 
-  let isOK = false;
-  try {
-    isOK = road[y + speedY][x + speedX];
-  } catch (e) {}
+  let isOK = road[y + speedY] && road[y + speedY][x + speedX];
+
   return isOK;
 }
 
@@ -102,6 +114,7 @@ function isJunction(x, y) {
 
 function chooseDirection(x, y, oldDirection) {
   let validDirections = [];
+  // debugger;
   for (let directionName in directions) {
     if (
       !directionsAreOpposite(directions[directionName], oldDirection) &&
@@ -110,24 +123,39 @@ function chooseDirection(x, y, oldDirection) {
       validDirections.push(directions[directionName]);
     }
   }
-  const newDirectionIndex = Math.floor(Math.random() * validDirections.length);
-  let newDirection = null;
-  let returnValue = null;
-
-  try {
-    newDirection = validDirections[newDirectionIndex];
-    returnValue = {
-      newSpeedX: newDirection[0],
-      newSpeedY: newDirection[1]
-    };
-  } catch (e) {
-    clearInterval(tickInterval);
-  }
+  // const newDirectionIndex = Math.floor(Math.random() * validDirections.length);
+  let newDirectionIndex = null;
+  let minDistance = Number.MAX_SAFE_INTEGER;
+  validDirections.forEach((direction, directionIndex) => {
+    const newCellX = x + direction[0];
+    const newCellY = y + direction[1];
+    const distance = getDistance(
+      { x: target[0], y: target[1] },
+      { x: newCellX, y: newCellY }
+    );
+    if (distance < minDistance) {
+      minDistance = distance;
+      newDirectionIndex = directionIndex;
+    }
+  });
+  console.log("minDistance: ", minDistance);
+  let newDirection = validDirections[newDirectionIndex];
+  let returnValue = {
+    newSpeedX: newDirection[0],
+    newSpeedY: newDirection[1]
+  };
 
   if (!returnValue) {
     debugger;
   }
   return returnValue;
+}
+
+function getDistance(pointA, pointB) {
+  const deltaX = pointA.x - pointB.x;
+  const deltaY = pointA.y - pointB.y;
+  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  return distance;
 }
 
 class App extends React.Component {
@@ -136,42 +164,35 @@ class App extends React.Component {
     this.state = {
       cars: this.generateCars()
     };
+    window.cars = this.state.cars;
   }
 
   componentDidMount() {
     window.tick = this.tick;
     tickInterval = setInterval(this.tick, tickDelay);
+    window.cars = this.printCars;
   }
+
+  printCars = () => {
+    console.log(this.state.cars[0]);
+  };
 
   tick = () => {
     let newCars = this.state.cars.map(car => {
       let newSpeedX = 0;
       let newSpeedY = 0;
       let canMove = true;
-
-      let shouldChangeDirectionAtJunction = Math.random() > junctionChance;
-      let mustChangeDirection = false;
-
-      if (!canGo(car.x, car.y, null, car.speedX, car.speedY)) {
-        mustChangeDirection = true;
-      } else if (isJunction(car.x, car.y) && shouldChangeDirectionAtJunction) {
-        mustChangeDirection = true;
+      if (car.x === target[0] && car.y === target[1]) {
+        canMove = false;
+        if (tickInterval) clearInterval(tickInterval);
+        // alert("yohoo");
       }
-      if (mustChangeDirection) {
-        const newDirection = chooseDirection(car.x, car.y, [
-          car.speedX,
-          car.speedY
-        ]);
-        newSpeedX = newDirection.newSpeedX;
-        newSpeedY = newDirection.newSpeedY;
-      } else {
-        newSpeedX = car.speedX;
-        newSpeedY = car.speedY;
-
-        if (isAnotherCarInFront(car, this.state.cars)) {
-          canMove = false;
-        }
-      }
+      const newDirection = chooseDirection(car.x, car.y, [
+        car.speedX,
+        car.speedY
+      ]);
+      newSpeedX = newDirection.newSpeedX;
+      newSpeedY = newDirection.newSpeedY;
 
       let newCarProperties = {
         ...car,
@@ -186,6 +207,7 @@ class App extends React.Component {
         newCarProperties.x = car.x;
         newCarProperties.y = car.y;
       }
+      console.log(newCarProperties);
       return newCarProperties;
     });
     this.setState({ cars: newCars });
@@ -200,27 +222,27 @@ class App extends React.Component {
         const green = Math.round(Math.random() * 155) + 100;
         const rgb = `rgb(${red},${blue},${green})`;
 
-        // let randomInitialCellIndex = Math.round(
-        //   Math.random() * (validRoadCells.length - 1)
-        // );
-        let randomInitialCellIndex = 0;
-        let initialCell = validRoadCells[randomInitialCellIndex];
-        if (!initialCell) {
-          debugger;
-        }
-        validRoadCells.splice(randomInitialCellIndex, 1);
+        let randomInitialCellIndex = Math.round(
+          Math.random() * (validRoadCells.length - 1)
+        );
+        // let randomInitialCellIndex = 0;
+        // let initialCell = validRoadCells[randomInitialCellIndex];
+        // if (!initialCell) {
+        //   debugger;
+        // }
+        // validRoadCells.splice(randomInitialCellIndex, 1);
+        // let direction = chooseDirection(initialCell.x, initialCell.y, [0, 0]);
+
         // debugger;
         // let randomInitialCellIndex = 6;
-        // let initialCell = {
-        //   x: 0,
-        //   y: 16
-        // };
-        // let direction = {
-        //   newSpeedY: 1,
-        //   newSpeedX: 0
-        // };
-
-        let direction = chooseDirection(initialCell.x, initialCell.y, [0, 0]);
+        let initialCell = {
+          x: 11,
+          y: 0
+        };
+        let direction = {
+          newSpeedY: 0,
+          newSpeedX: 1
+        };
 
         // debugger;
         const carParams = {
@@ -268,9 +290,9 @@ class App extends React.Component {
           height: unitSize + "px",
           backgroundColor: isRoad ? "#444" : "#fff"
         };
-        // if (rowIndex === 1 && columnIndex === 2) {
-        //   style.backgroundColor = "red";
-        // }
+        if (rowIndex === target[1] && columnIndex === target[0]) {
+          style.backgroundColor = "red";
+        }
         return (
           <div
             className="road"

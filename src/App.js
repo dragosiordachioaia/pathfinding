@@ -1,8 +1,8 @@
 import React from "react";
 import "./App.css";
 
-const unitSize = 20;
-const carCount = 1;
+const unitSize = 30;
+const carCount = 0;
 const tickDelay = 16;
 const junctionChance = 0;
 let tickInterval = null;
@@ -96,6 +96,7 @@ function chooseDirection(x, y, oldDirection) {
   const newDirectionIndex = Math.floor(Math.random() * validDirections.length);
   let newDirection = null;
   let returnValue = null;
+
   try {
     newDirection = validDirections[newDirectionIndex];
     returnValue = {
@@ -121,7 +122,7 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    tickInterval = setInterval(this.tick, tickDelay);
+    // tickInterval = setInterval(this.tick, tickDelay);
   }
 
   tick = () => {
@@ -153,22 +154,26 @@ class App extends React.Component {
   generateCars = () => {
     return Array(carCount)
       .fill(null)
-      .map(car => {
+      .map((car, index) => {
         const red = Math.round(Math.random() * 155) + 100;
         const blue = Math.round(Math.random() * 155) + 100;
         const green = Math.round(Math.random() * 155) + 100;
         const rgb = `rgb(${red},${blue},${green})`;
 
-        // let randomInitialCell = Math.round(Math.random() * validRoadCells.length);
-        let randomInitialCell = 0;
-
+        // let randomInitialCellIndex = Math.round(
+        //   Math.random() * validRoadCells.length
+        // );
+        let randomInitialCellIndex = 18;
+        let initialCell = validRoadCells[randomInitialCellIndex];
+        let direction = chooseDirection(initialCell.x, initialCell.y, [0, 0]);
+        // debugger;
         const carParams = {
           id: Math.floor(Math.random() * 10000000),
           color: rgb,
-          speedX: 1,
-          speedY: 0,
-          x: validRoadCells[randomInitialCell].x,
-          y: validRoadCells[randomInitialCell].y
+          speedX: direction.newSpeedX,
+          speedY: direction.newSpeedY,
+          x: initialCell.x,
+          y: initialCell.y
         };
         // debugger;
         return carParams;
@@ -203,12 +208,19 @@ class App extends React.Component {
           height: unitSize + "px",
           backgroundColor: isRoad ? "#444" : "#fff"
         };
+        if (rowIndex === 1 && columnIndex === 2) {
+          style.backgroundColor = "red";
+        }
         return (
           <div
             className="road"
             key={`road-${rowIndex}-${columnIndex}`}
             style={style}
-          />
+          >
+            <span className="road-label">
+              {rowIndex}:{columnIndex}
+            </span>
+          </div>
         );
       });
     });

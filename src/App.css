@@ -9,5 +9,19 @@
   /* transition-timing-function: linear; */
   position: absolute;
   display: block;
+  border-right: 1px solid #bbb;
+  border-bottom: 1px solid #bbb;
+  box-sizing: border-box;
   transform: translate(-50%, -50%);
+}
+
+.road-label {
+  color: #fff;
+  mix-blend-mode: exclusion;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  width: 100%;
+  display: inline-block;
+  line-height: 27px;
 }

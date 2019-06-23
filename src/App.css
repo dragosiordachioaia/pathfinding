@@ -1,10 +1,11 @@
 .game {
   position: relative;
-  margin: 60px 40px;
+  margin: 30px 30px;
 }
 
 .car,
-.road {
+.road,
+.path {
   /* transition: all 0ms; */
   /* transition-timing-function: linear; */
   position: absolute;
@@ -12,7 +13,7 @@
   /* border-right: 1px solid #bbb; */
   /* border-bottom: 1px solid #bbb; */
   box-sizing: border-box;
-  /* transform: translate(-50%, -50%); */
+  transform: translate(-50%, -50%);
 }
 
 .car {

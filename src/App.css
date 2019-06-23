@@ -6,7 +6,8 @@
 .car,
 .road,
 .path,
-.shortest-path {
+.shortest-path,
+.target {
   /* transition: all 0ms; */
   /* transition-timing-function: linear; */
   position: absolute;
@@ -17,12 +18,32 @@
   transform: translate(-50%, -50%);
 }
 
-.car {
-  border-radius: 50%;
+@keyframes start {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(6);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+  }
 }
 
 .shortest-path {
+}
+
+.car,
+.target {
+  transform: translate(-50%, -50%) scale(0);
   border-radius: 50%;
+  animation-name: start;
+  animation-delay: 1s;
+  animation-duration: 1000ms;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
 }
 
 .road-label,

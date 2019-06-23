@@ -1,12 +1,22 @@
 import React from "react";
 import "./App.css";
-import road from "./Road.json";
+// import road from "./Road.json";
 
-const unitSize = 20;
+let road = Array(100).fill(null);
+road = road.map(() => {
+  return Array(200)
+    .fill(null)
+    .map(element => (Math.random() > 0.2 ? 1 : 0));
+});
+
+// console.log(road);
+const MAX_DEPTH = 10000;
+const unitSize = 6;
 const carCount = 1;
 const tickDelay = 16;
 const junctionChance = 0.5;
 let tickInterval = null;
+let visitedCells = {};
 
 const directions = {
   up: [0, -1],
@@ -130,7 +140,16 @@ function canGo(x, y, direction, speedXParam, speedYParam) {
   let isOK = road[y + speedY] && road[y + speedY][x + speedX];
 
   if (isOK) {
-    return [x + speedX, y + speedY];
+    // debugger;
+    let cellKey = `${x + speedX}-${y + speedY}`;
+    if (visitedCells[cellKey]) {
+      // console.log("coming from cell", x, y, "visitedCell:", cellKey);
+      return false;
+    } else {
+      // console.log("cell", cellKey, "is fine");
+      visitedCells[cellKey] = true;
+      return [x + speedX, y + speedY];
+    }
   }
 }
 
@@ -158,9 +177,11 @@ class App extends React.Component {
     // tickInterval = setInterval(this.tick, tickDelay);
     window.cars = this.printCars;
     window.start = this.start;
+    setTimeout(this.start, 1000);
   }
 
   start = () => {
+    this.startTime = Date.now();
     this.next(paths);
   };
 
@@ -190,17 +211,21 @@ class App extends React.Component {
       this.targetFound = true;
       this.canContinue = false;
       this.messagePrinted = true;
+      this.endTime = Date.now();
+      this.duration = this.endTime - this.startTime;
+      // this.setState({ path: paths });
       this.setShortestPath(currentParent);
+      setTimeout(() => alert(`Target found in ${this.duration}ms`), 1000);
       console.log(`found at level ${currentParent.level}`);
 
       return;
     }
 
-    if (currentParent.level > 1000) {
+    if (currentParent.level > MAX_DEPTH) {
       this.canContinue = false;
       if (!this.messagePrinted) {
         this.messagePrinted = true;
-        console.log("max level reached");
+        alert("max level reached");
         console.log(paths);
       }
     }
@@ -211,12 +236,12 @@ class App extends React.Component {
     for (let directionName in directions) {
       const newCell = canGo(cell[0], cell[1], directionName);
       let directionIsOK = true;
-      if (currentParent.directionName) {
-        directionIsOK = !directionsAreOpposite(
-          directions[directionName],
-          directions[currentParent.directionName]
-        );
-      }
+      // if (currentParent.directionName) {
+      //   directionIsOK = !directionsAreOpposite(
+      //     directions[directionName],
+      //     directions[currentParent.directionName]
+      //   );
+      // }
 
       if (newCell && directionIsOK) {
         const newBranch = {
@@ -233,7 +258,7 @@ class App extends React.Component {
     // console.log("currentParent = ", currentParent);
     if (currentParent.level > this.deepestLevel) {
       this.deepestLevel = currentParent.level;
-      this.setState({ path: paths });
+      // this.setState({ path: paths });
     }
     setTimeout(() => {
       // console.log(
@@ -245,7 +270,7 @@ class App extends React.Component {
           this.next(branch);
         }
       });
-    }, 100);
+    }, 1);
   };
 
   printCars = () => {
@@ -314,7 +339,7 @@ class App extends React.Component {
           x: 0,
           y: 0
         };
-        let direction = chooseDirection(initialCell.x, initialCell.y, [0, 0]);
+        // let direction = chooseDirection(initialCell.x, initialCell.y, [0, 0]);
         // let direction = {
         //   newSpeedY: 0,
         //   newSpeedX: 1
@@ -324,8 +349,8 @@ class App extends React.Component {
         const carParams = {
           id: Math.floor(Math.random() * 10000000),
           color: rgb,
-          speedX: direction.newSpeedX,
-          speedY: direction.newSpeedY,
+          speedX: 0,
+          speedY: 0,
           x: initialCell.x,
           y: initialCell.y
         };
@@ -366,9 +391,6 @@ class App extends React.Component {
           height: unitSize + "px",
           backgroundColor: isRoad ? "#444" : "#fff"
         };
-        if (rowIndex === target[1] && columnIndex === target[0]) {
-          style.backgroundColor = "red";
-        }
         return (
           <div
             className="road"
@@ -384,14 +406,25 @@ class App extends React.Component {
     });
   };
 
+  displayTarget = () => {
+    const style = {
+      left: target[0] * unitSize,
+      top: target[1] * unitSize,
+      width: unitSize * 1.5 + "px",
+      height: unitSize * 1.5 + "px",
+      backgroundColor: "red"
+    };
+    return <div className="target" style={style} />;
+  };
+
   displayShortestPath = () => {
     return this.state.shortestPath.map((cell, index) => {
       let style = {
         left: cell[0] * unitSize,
         top: cell[1] * unitSize,
-        width: unitSize / 3 + "px",
-        height: unitSize / 3 + "px",
-        backgroundColor: "pink"
+        width: unitSize / 2 + "px",
+        height: unitSize / 2 + "px",
+        backgroundColor: "rgb(0,255,0)"
       };
 
       return (
@@ -468,6 +501,7 @@ class App extends React.Component {
         {this.displayPath()}
         {this.displayShortestPath()}
         {this.displayCars()}
+        {this.displayTarget()}
       </div>
     );
   }

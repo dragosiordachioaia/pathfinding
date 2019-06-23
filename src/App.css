@@ -15,7 +15,7 @@
   /* border-right: 1px solid #bbb; */
   /* border-bottom: 1px solid #bbb; */
   box-sizing: border-box;
-  transform: translate(-50%, -50%);
+  /* transform: translate(-50%, -50%); */
 }
 
 @keyframes start {
@@ -33,17 +33,19 @@
 }
 
 .shortest-path {
+  transform: scale(1.5);
 }
 
 .car,
-.target {
-  transform: translate(-50%, -50%) scale(0);
+.target,
+.path {
+  transform: scale(3);
   border-radius: 50%;
-  animation-name: start;
+  /* animation-name: start;
   animation-delay: 1s;
   animation-duration: 1000ms;
   animation-iteration-count: 1;
-  animation-fill-mode: forwards;
+  animation-fill-mode: forwards; */
 }
 
 .road-label,

@@ -1,7 +1,6 @@
 import React from "react";
 import "./App.css";
 import road from "./Road.json";
-console.log(road)
 
 const unitSize = 20;
 const carCount = 1;
@@ -26,12 +25,10 @@ road.forEach((row, rowIndex) => {
   });
 });
 
-const targetIndex = Math.floor(Math.random()*(validRoadCells.length - 1));
+const targetIndex = Math.floor(Math.random() * (validRoadCells.length - 1));
 const targetCell = validRoadCells[targetIndex];
 const target = [targetCell.x, targetCell.y];
 window.target = target;
-
-
 
 function directionsAreOpposite(oldDirection, newDirection) {
   let opposite = false;
@@ -53,23 +50,6 @@ function directionsAreOpposite(oldDirection, newDirection) {
     }
   }
   return opposite;
-}
-
-function canGo(x, y, direction, speedXParam, speedYParam) {
-  let speedX = 0;
-  let speedY = 0;
-
-  if (direction) {
-    speedX = directions[direction][0];
-    speedY = directions[direction][1];
-  } else {
-    speedX = speedXParam;
-    speedY = speedYParam;
-  }
-
-  let isOK = road[y + speedY] && road[y + speedY][x + speedX];
-
-  return isOK;
 }
 
 function isAnotherCarInFront({ x, y, speedX, speedY }, cars) {
@@ -135,21 +115,138 @@ function getDistance(pointA, pointB) {
   return distance;
 }
 
+function canGo(x, y, direction, speedXParam, speedYParam) {
+  let speedX = 0;
+  let speedY = 0;
+
+  if (direction) {
+    speedX = directions[direction][0];
+    speedY = directions[direction][1];
+  } else {
+    speedX = speedXParam;
+    speedY = speedYParam;
+  }
+
+  let isOK = road[y + speedY] && road[y + speedY][x + speedX];
+
+  if (isOK) {
+    return [x + speedX, y + speedY];
+  }
+}
+
+let paths = { cell: [0, 0], level: 0 };
+
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       cars: this.generateCars(),
-      path: []
+      path: [],
+      shortestPath: []
     };
+
+    this.targetFound = false;
+    this.messagePrinted = false;
+    this.canContinue = true;
+    this.deepestLevel = 0;
+
     window.cars = this.state.cars;
   }
 
   componentDidMount() {
     window.tick = this.tick;
-    tickInterval = setInterval(this.tick, tickDelay);
+    // tickInterval = setInterval(this.tick, tickDelay);
     window.cars = this.printCars;
+    window.start = this.start;
   }
+
+  start = () => {
+    this.next(paths);
+  };
+
+  setShortestPath = currentCell => {
+    let shortestPath = this.getParentPath([], currentCell).reverse();
+    console.log("shortestPath:", shortestPath);
+    this.setState({ shortestPath });
+  };
+
+  getParentPath = (pathSoFar, currentCell) => {
+    if (!currentCell.parent) {
+      return pathSoFar;
+    }
+    return this.getParentPath(
+      [...pathSoFar, currentCell.parent.cell],
+      currentCell.parent
+    );
+  };
+
+  next = currentParent => {
+    const cell = currentParent.cell;
+    // console.log("next");
+    // debugger;
+    if (!this.canContinue) return;
+
+    if (cell[0] === target[0] && cell[1] === target[1]) {
+      this.targetFound = true;
+      this.canContinue = false;
+      this.messagePrinted = true;
+      this.setShortestPath(currentParent);
+      console.log(`found at level ${currentParent.level}`);
+
+      return;
+    }
+
+    if (currentParent.level > 1000) {
+      this.canContinue = false;
+      if (!this.messagePrinted) {
+        this.messagePrinted = true;
+        console.log("max level reached");
+        console.log(paths);
+      }
+    }
+
+    if (!currentParent.branches) {
+      currentParent.branches = [];
+    }
+    for (let directionName in directions) {
+      const newCell = canGo(cell[0], cell[1], directionName);
+      let directionIsOK = true;
+      if (currentParent.directionName) {
+        directionIsOK = !directionsAreOpposite(
+          directions[directionName],
+          directions[currentParent.directionName]
+        );
+      }
+
+      if (newCell && directionIsOK) {
+        const newBranch = {
+          cell: newCell,
+          cellParent: currentParent.cell,
+          directionName,
+          parent: currentParent,
+          level: currentParent.level + 1
+        };
+        currentParent.branches.push(newBranch);
+      }
+    }
+
+    // console.log("currentParent = ", currentParent);
+    if (currentParent.level > this.deepestLevel) {
+      this.deepestLevel = currentParent.level;
+      this.setState({ path: paths });
+    }
+    setTimeout(() => {
+      // console.log(
+      //   "currentParent.branches.length = ",
+      //   currentParent.branches.length
+      // );
+      currentParent.branches.forEach(branch => {
+        if (!this.targetFound) {
+          this.next(branch);
+        }
+      });
+    }, 100);
+  };
 
   printCars = () => {
     console.log(this.state.cars[0]);
@@ -188,6 +285,7 @@ class App extends React.Component {
       return newCarProperties;
     });
     let newPath = [...this.state.path, [newCars[0].x, newCars[0].y]];
+
     this.setState({
       cars: newCars,
       path: newPath
@@ -286,8 +384,35 @@ class App extends React.Component {
     });
   };
 
+  displayShortestPath = () => {
+    return this.state.shortestPath.map((cell, index) => {
+      let style = {
+        left: cell[0] * unitSize,
+        top: cell[1] * unitSize,
+        width: unitSize / 3 + "px",
+        height: unitSize / 3 + "px",
+        backgroundColor: "pink"
+      };
+
+      return (
+        <div
+          className="shortest-path"
+          style={style}
+          key={`shortest-path-${cell[0]}-${cell[1]}-${index}`}
+        />
+      );
+    });
+  };
+
   displayPath = () => {
-    return this.state.path.map((cell, index) => {
+    const pathElements = this.flattenLevel(this.state.path);
+    // console.log(pathElements);
+
+    return pathElements.map((cell, index) => {
+      if (!cell) {
+        return null;
+      }
+
       let style = {
         left: cell[0] * unitSize,
         top: cell[1] * unitSize,
@@ -296,8 +421,44 @@ class App extends React.Component {
         backgroundColor: "#2ecc71"
       };
 
-      return <div className="path" key={`path-${index}`} style={style} />;
+      return (
+        <div
+          className="path"
+          style={style}
+          key={`path-${cell[0]}-${cell[1]}-${index}`}
+        />
+      );
     });
+  };
+
+  // flattenLevel = currentParent => {
+  //   if (currentParent.branches) {
+  //     return currentParent.cell;
+  //   }
+  //   return;
+  // };
+
+  flattenLevel = currentParent => {
+    const flat = [currentParent.cell];
+    if (currentParent.branches) {
+      currentParent.branches.forEach(branch => {
+        flat.push(...this.flattenLevel(branch));
+      });
+    }
+
+    return flat;
+  };
+
+  displayPathLevel = currentParent => {
+    let branches = null;
+    if (currentParent.branches) {
+      branches = currentParent.branches.map(branch =>
+        this.displayPathLevel(branch)
+      );
+    }
+    if (!currentParent || !currentParent.cell) {
+      return null;
+    }
   };
 
   render() {
@@ -305,6 +466,7 @@ class App extends React.Component {
       <div className="game">
         {this.displayRoad()}
         {this.displayPath()}
+        {this.displayShortestPath()}
         {this.displayCars()}
       </div>
     );

@@ -5,7 +5,8 @@
 
 .car,
 .road,
-.path {
+.path,
+.shortest-path {
   /* transition: all 0ms; */
   /* transition-timing-function: linear; */
   position: absolute;
@@ -17,6 +18,10 @@
 }
 
 .car {
+  border-radius: 50%;
+}
+
+.shortest-path {
   border-radius: 50%;
 }
 

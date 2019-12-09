@@ -1,21 +1,15 @@
 import React from "react";
 import "./App.css";
-// import road from "./Road.json";
 
 let road = Array(80).fill(null);
 road = road.map(() => {
   return Array(270)
     .fill(null)
-    .map(element => (Math.random() > 0.2 ? 1 : 0));
+    .map(() => (Math.random() > 0.2 ? 1 : 0));
 });
 
-// console.log(road);
-const MAX_DEPTH = 10000;
 const unitSize = 5;
 const carCount = 1;
-const tickDelay = 16;
-const junctionChance = 0.5;
-let tickInterval = null;
 let visitedCells = {};
 
 const directions = {
@@ -37,28 +31,6 @@ road.forEach((row, rowIndex) => {
 
 let target = null;
 window.target = target;
-
-function directionsAreOpposite(oldDirection, newDirection) {
-  let opposite = false;
-
-  if (oldDirection[0]) {
-    if (
-      oldDirection[0] === -newDirection[0] &&
-      oldDirection[1] === newDirection[1]
-    ) {
-      opposite = true;
-    }
-  }
-  if (oldDirection[1]) {
-    if (
-      oldDirection[1] === -newDirection[1] &&
-      oldDirection[0] === newDirection[0]
-    ) {
-      opposite = true;
-    }
-  }
-  return opposite;
-}
 
 function canGo(x, y, direction) {
   let speedX = directions[direction][0];
